@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>INSANE Three.js Visualizer</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+    <style>
+        body { margin:0; padding:0; overflow: hidden; background-color: #000; }
+        canvas { display: block; } /* Ensures canvas fills container and no extra space */
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: sans-serif;
+            z-index: 10;
+            text-shadow: 1px 1px 2px black;
+        }
+    </style>
+</head>
+<body>
+
+<div id="info">Hover or Click on a shape!</div>
+
+<!-- Three.js Library -->
+<!-- Using cdnjs for ease of single-file example -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.154.0/three.min.js"></script>
+<!-- OrbitControls for easy camera movement -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/controls/OrbitControls.js"></script>
+
+
+<script>
+    let scene, camera, renderer, controls;
+    let objects = []; // Array to hold all our 3D objects
+    let raycaster = new THREE.Raycaster();
+    let mouse = new THREE.Vector2();
+    let intersectedObject = null; // To track the object currently being hovered
+
+    const objectCount = 300; // Number of objects
+    const interactionDistance = 10; // Raycaster distance limit
+
+    init();
+    animate();
+
+    function init() {
+        // Scene setup
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111111); // Dark background
+
+        // Camera setup
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 100; // Start the camera a bit back
+
+        // Renderer setup
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement); // Add canvas to body
+
+        // Controls setup (for orbiting/panning/zooming)
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDDamping = true; // Smooth camera movement
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = false; // Keep vertical panning locked to up/down world axis
+        controls.maxDistance = 500;
+        controls.minDistance = 10;
+
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xaaaaaa); // Soft white light
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Directional light
+        directionalLight.position.set(1, 1, 1).normalize();
+        scene.add(directionalLight);
+
+        const pointLight = new THREE.PointLight(0xff00ff, 1, 100); // Pink point light
+        pointLight.position.set(50, 50, -50);
+        scene.add(pointLight);
+
+         const pointLight2 = new THREE.PointLight(0x00ffff, 1, 100); // Cyan point light
+        pointLight2.position.set(-50, -50, 50);
+        scene.add(pointLight2);
+
+
+        // Create various geometries
+        const geometries = [
+            new THREE.BoxGeometry(1, 1, 1),
+            new THREE.SphereGeometry(0.75, 16, 16), // Smaller sphere
+            new THREE.ConeGeometry(0.75, 1.5, 16),
+            new THREE.CylinderGeometry(0.75, 0.75, 1.5, 16),
+            new THREE.TorusGeometry(0.5, 0.2, 10, 20),
+            new THREE.OctahedronGeometry(1),
+            new THREE.DodecahedronGeometry(1)
+        ];
+
+        // Create the objects
+        for (let i = 0; i < objectCount; i++) {
+            // Random geometry
+            const geometry = geometries[Math.floor(Math.random() * geometries.length)];
+
+            // Random vibrant color
+            const material = new THREE.MeshPhongMaterial({
+                color: new THREE.Color(Math.random(), Math.random(), Math.random()).getHex(),
+                specular: 0x555555, // How shiny the surface is
+                shininess: 30,     // How sharp the specular highlight is
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+
+            // Random position within a sphere volume
+            const radius = 80;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+            mesh.position.x = radius * Math.sin(phi) * Math.cos(theta);
+            mesh.position.y = radius * Math.sin(phi) * Math.sin(theta);
+            mesh.position.z = radius * Math.cos(phi);
+
+            // Random initial rotation
+            mesh.rotation.x = Math.random() * Math.PI;
+            mesh.rotation.y = Math.random() * Math.PI;
+            mesh.rotation.z = Math.random() * Math.PI;
+
+            // Store unique animation properties for each object
+            mesh.userData.speed = Math.random() * 0.01 + 0.005; // Slower/faster rotation
+            mesh.userData.rotationAxis = new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize(); // Random rotation axis
+            mesh.userData.originalColor = mesh.material.color.clone(); // Store original color
+            mesh.userData.originalScale = mesh.scale.clone(); // Store original scale
+
+            scene.add(mesh);
+            objects.push(mesh); // Add to interactive objects list
+        }
+
+         // Set raycaster distance limit
+         raycaster.far = camera.far; // Or a custom limit
+
+        // Event listeners
+        window.addEventListener('resize', onWindowResize, false);
+        renderer.domElement.addEventListener('mousemove', onMouseMove, false);
+        renderer.domElement.addEventListener('click', onClick, false);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onMouseMove(event) {
+        // Calculate mouse position in normalized device coordinates (-1 to +1)
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    function onClick(event) {
+        // Update the raycaster with the camera and mouse position
+        raycaster.setFromCamera(mouse, camera);
+
+        // Check for intersections
+        const intersects = raycaster.intersectObjects(objects);
+
+        if (intersects.length > 0) {
+            // Get the first intersected object (closest one)
+            const clickedObject = intersects[0].object;
+
+            // Apply a click effect (e.g., scale pulse, color flash)
+            clickedObject.userData.isClicked = true;
+            clickedObject.userData.clickTime = performance.now();
+
+             // Animate scale up and back down
+            new TWEEN.Tween(clickedObject.scale)
+                .to({ x: 1.5, y: 1.5, z: 1.5 }, 150) // Scale up in 150ms
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .onComplete(() => {
+                     new TWEEN.Tween(clickedObject.scale)
+                         .to(clickedObject.userData.originalScale, 300) // Scale back to original
+                         .easing(TWEEN.Easing.Quadratic.Out)
+                         .start();
+                })
+                .start();
+
+            // Animate color flash
+             new TWEEN.Tween(clickedObject.material.color)
+                .to(new THREE.Color(0xffffff), 100) // Flash white
+                 .easing(TWEEN.Easing.Quadratic.Out)
+                 .onComplete(() => {
+                     new TWEEN.Tween(clickedObject.material.color)
+                        .to(clickedObject.userData.originalColor, 400) // Fade back to original
+                        .easing(TWEEN.Easing.Quadratic.Out)
+                        .start();
+                 })
+                 .start();
+
+
+        } else {
+            // No object clicked, maybe do something global or nothing
+        }
+    }
+
+
+    // Simple TWEEN.js integration for animations (requires library - added via CDN)
+    // Note: For a truly self-contained example without *any* external files,
+    // you'd need to copy the TWEEN.js source here. But CDN is simpler for Three.js examples.
+    // We'll use it for click animations.
+    // Check if TWEEN exists (loaded from CDN)
+    if (typeof TWEEN === 'undefined') {
+         console.warn("TWEEN.js not found. Click animations will not work. Add <script src='https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.min.js'></script>");
+         // Define a dummy TWEEN if not found to prevent errors
+         window.TWEEN = { update: () => {} };
+         window.TWEEN.Tween = function() { this.to = () => this; this.easing = () => this; this.onComplete = () => this; this.start = () => this; };
+         window.TWEEN.Easing = { Quadratic: { Out: (t) => t * (2 - t) } }; // Dummy easing
+    }
+
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // Update object positions/rotations for constant motion
+        const time = performance.now() * 0.0001; // Use a slower time factor
+
+        objects.forEach((obj, index) => {
+            // Basic constant rotation around object's stored axis
+            const rotationAmount = obj.userData.speed;
+            obj.rotateOnAxis(obj.userData.rotationAxis, rotationAmount);
+
+            // Optional: Add some subtle translation/wobble based on time
+            // This makes it look more "insane" and less static
+             obj.position.x += Math.sin(time * (index + 1) * 0.1) * 0.01;
+             obj.position.y += Math.cos(time * (index + 1) * 0.15) * 0.01;
+             obj.position.z += Math.sin(time * (index + 1) * 0.08) * 0.01;
+
+            // Keep objects within bounds or wrap around (example: sphere boundary)
+            // If object goes too far, bring it closer to the center or wrap it
+             const distFromCenter = obj.position.length();
+             const boundaryRadius = 100; // Example boundary
+             if (distFromCenter > boundaryRadius) {
+                // Option 1: Bring back towards center (less "insane", more contained)
+                // obj.position.multiplyScalar(0.95);
+
+                // Option 2: Warp to opposite side (more abstract)
+                 obj.position.multiplyScalar(-1);
+                 obj.position.add(new THREE.Vector3(
+                     THREE.MathUtils.randFloatSpread(10),
+                     THREE.MathUtils.randFloatSpread(10),
+                     THREE.MathUtils.randFloatSpread(10)
+                 )); // Add some randomness on warp
+             }
+        });
+
+
+        // Raycasting for hover effect
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(objects);
+
+        if (intersects.length > 0) {
+            // There's at least one intersection
+            const firstIntersected = intersects[0].object;
+
+            if (intersectedObject != firstIntersected) {
+                // A new object is being hovered
+
+                // Restore previous hovered object's scale and color (if any)
+                if (intersectedObject) {
+                    intersectedObject.scale.copy(intersectedObject.userData.originalScale);
+                     // Only restore color if it wasn't just clicked (which also animates color)
+                    // if (!intersectedObject.userData.isClicked || (performance.now() - intersectedObject.userData.clickTime) > 500) {
+                       intersectedObject.material.color.copy(intersectedObject.userData.originalColor);
+                    // }
+                }
+
+                // Set the new hovered object and apply hover effect (e.g., glow color, slight scale)
+                intersectedObject = firstIntersected;
+                intersectedObject.material.color.setHex(0xffff00); // Highlight color (yellow)
+                 // Animate scale slightly up on hover
+                 new TWEEN.Tween(intersectedObject.scale)
+                     .to(intersectedObject.userData.originalScale.clone().multiplyScalar(1.1), 100)
+                     .easing(TWEEN.Easing.Quadratic.Out)
+                     .start();
+
+            }
+            // If intersects.length > 0 and intersectedObject is the same, do nothing (already highlighted)
+
+        } else {
+            // No intersections
+            if (intersectedObject) {
+                // We were just hovering over an object, but now we're not
+                // Restore its original scale and color
+                 new TWEEN.Tween(intersectedObject.scale)
+                     .to(intersectedObject.userData.originalScale, 100)
+                     .easing(TWEEN.Easing.Quadratic.Out)
+                     .start();
+
+                // Only restore color if it wasn't just clicked (which also animates color)
+                // if (!intersectedObject.userData.isClicked || (performance.now() - intersectedObject.userData.clickTime) > 500) {
+                    new TWEEN.Tween(intersectedObject.material.color)
+                        .to(intersectedObject.userData.originalColor, 100)
+                        .easing(TWEEN.Easing.Quadratic.Out)
+                        .start();
+                // }
+
+
+                intersectedObject = null; // Clear hovered object
+            }
+        }
+
+        // Update TWEEN.js animations
+        TWEEN.update();
+
+        // Update controls (needed if controls.enableDamping is true)
+        controls.update();
+
+        // Render the scene
+        renderer.render(scene, camera);
+    }
+
+</script>
+
+</body>
+</html>
