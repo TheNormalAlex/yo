@@ -23,46 +23,54 @@
 
 <div id="info">Hover or Click on a shape!</div>
 
-<!-- Three.js Library -->
-<!-- Using cdnjs for ease of single-file example -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.154.0/three.min.js"></script>
-<!-- OrbitControls for easy camera movement - USING THE CLASSIC /js/ VERSION -->
-<!-- This script will likely add OrbitControls to the global THREE object -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.154.0/examples/js/controls/OrbitControls.js"></script>
-<!-- TWEEN.js for animations (optional, but used for click effect) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.min.js"></script>
+<!-- No individual script tags for Three/OrbitControls/TWEEN here -->
+<!-- We load them using import statements within the script tag below -->
 
+<script type="module"> // <--- IMPORTANT: Set script type to "module"
 
-<script>
+    // Import Three.js library using the full URL to the module version on cdnjs
+    import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.154.0/three.module.js';
+
+    // Import OrbitControls using the full URL to the JSM version on cdnjs
+    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/controls/OrbitControls.js';
+
+    // Import TWEEN.js using the full URL to the ES module version on cdnjs
+    import { TWEEN } from 'https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.esm.js';
+
+    // --- Rest of your script remains largely the same ---
+    // You still use the THREE prefix for core Three.js components (Vector3, Mesh, Scene, etc.)
+    // but use OrbitControls and TWEEN directly as imported.
+
     let scene, camera, renderer, controls;
     let objects = []; // Array to hold all our 3D objects
-    let raycaster = new THREE.Raycaster();
-    let mouse = new THREE.Vector2();
+    let raycaster = new THREE.Raycaster(); // THREE prefix still needed for raycaster
+    let mouse = new THREE.Vector2();     // THREE prefix still needed for Vector2
     let intersectedObject = null; // To track the object currently being hovered
 
     const objectCount = 300; // Number of objects
-    // const interactionDistance = 10; // Raycaster distance limit - not strictly needed if using intersectedObjects directly
 
+    // Initialize the scene
     init();
+    // Start the animation loop
     animate();
 
     function init() {
         // Scene setup
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x111111); // Dark background
+        scene = new THREE.Scene(); // THREE prefix needed
+        scene.background = new THREE.Color(0x111111); // THREE prefix needed
 
         // Camera setup
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); // THREE prefix needed
         camera.position.z = 100; // Start the camera a bit back
 
         // Renderer setup
-        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer = new THREE.WebGLRenderer({ antialias: true }); // THREE prefix needed
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement); // Add canvas to body
 
         // Controls setup (for orbiting/panning/zooming)
-        // Accessing OrbitControls via the THREE object as it's defined by the /js/ script
-        controls = new THREE.OrbitControls(camera, renderer.domElement); // <--- CHANGED HERE
+        // Now OrbitControls is imported directly, use it WITHOUT THREE. prefix
+        controls = new OrbitControls(camera, renderer.domElement); // <--- CORRECT USAGE FOR ES MODULES
         controls.enableDamping = true; // Smooth camera movement
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = false; // Keep vertical panning locked to up/down world axis
@@ -71,31 +79,31 @@
 
 
         // Lights
-        const ambientLight = new THREE.AmbientLight(0xaaaaaa); // Soft white light
+        const ambientLight = new THREE.AmbientLight(0xaaaaaa); // THREE prefix needed
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Directional light
-        directionalLight.position.set(1, 1, 1).normalize();
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // THREE prefix needed
+        directionalLight.position.set(1, 1, 1); // Use THREE.Vector3 before normalize if you created it explicitly, set method just takes numbers
         scene.add(directionalLight);
 
-        const pointLight = new THREE.PointLight(0xff00ff, 1, 100); // Pink point light
+        const pointLight = new THREE.PointLight(0xff00ff, 1, 100); // THREE prefix needed
         pointLight.position.set(50, 50, -50);
         scene.add(pointLight);
 
-         const pointLight2 = new THREE.PointLight(0x00ffff, 1, 100); // Cyan point light
+         const pointLight2 = new THREE.PointLight(0x00ffff, 1, 100); // THREE prefix needed
         pointLight2.position.set(-50, -50, 50);
         scene.add(pointLight2);
 
 
         // Create various geometries
         const geometries = [
-            new THREE.BoxGeometry(1, 1, 1),
-            new THREE.SphereGeometry(0.75, 16, 16), // Smaller sphere
-            new THREE.ConeGeometry(0.75, 1.5, 16),
-            new THREE.CylinderGeometry(0.75, 0.75, 1.5, 16),
-            new THREE.TorusGeometry(0.5, 0.2, 10, 20),
-            new THREE.OctahedronGeometry(1),
-            new THREE.DodecahedronGeometry(1)
+            new THREE.BoxGeometry(1, 1, 1), // THREE prefix needed
+            new THREE.SphereGeometry(0.75, 16, 16), // THREE prefix needed
+            new THREE.ConeGeometry(0.75, 1.5, 16), // THREE prefix needed
+            new THREE.CylinderGeometry(0.75, 0.75, 1.5, 16), // THREE prefix needed
+            new THREE.TorusGeometry(0.5, 0.2, 10, 20), // THREE prefix needed
+            new THREE.OctahedronGeometry(1), // THREE prefix needed
+            new THREE.DodecahedronGeometry(1) // THREE prefix needed
         ];
 
         // Create the objects
@@ -104,13 +112,13 @@
             const geometry = geometries[Math.floor(Math.random() * geometries.length)];
 
             // Random vibrant color
-            const material = new THREE.MeshPhongMaterial({
-                color: new THREE.Color().setHSL(Math.random(), 0.7, 0.6).getHex(), // Use HSL for more vibrant random colors
+            const material = new THREE.MeshPhongMaterial({ // THREE prefix needed
+                color: new THREE.Color().setHSL(Math.random(), 0.7, 0.6).getHex(), // THREE prefix needed for Color and setHSL method
                 specular: 0x555555, // How shiny the surface is
                 shininess: 30,     // How sharp the specular highlight is
             });
 
-            const mesh = new THREE.Mesh(geometry, material);
+            const mesh = new THREE.Mesh(geometry, material); // THREE prefix needed
 
             // Random position within a sphere volume
             const radius = 80;
@@ -127,15 +135,16 @@
 
             // Store unique animation properties for each object
             mesh.userData.speed = Math.random() * 0.01 + 0.005; // Slower/faster rotation
+            // THREE prefix needed for Vector3 and normalize method
             mesh.userData.rotationAxis = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize(); // Random rotation axis centered around origin
-            mesh.userData.originalColor = mesh.material.color.clone(); // Store original color
-            mesh.userData.originalScale = mesh.scale.clone(); // Store original scale
+            mesh.userData.originalColor = mesh.material.color.clone(); // clone doesn't need prefix, Color object does
+            mesh.userData.originalScale = mesh.scale.clone(); // clone doesn't need prefix
 
             scene.add(mesh);
             objects.push(mesh); // Add to interactive objects list
         }
 
-         // Set raycaster distance limit - useful for not highlighting objects too far away
+         // Set raycaster distance limit
          raycaster.far = camera.far;
 
         // Event listeners
@@ -161,19 +170,18 @@
         raycaster.setFromCamera(mouse, camera);
 
         // Check for intersections
-        // true for recursive check, needed if objects had children, but not here
-        const intersects = raycaster.intersectObjects(objects);
+        const intersects = raycaster.intersectObjects(objects); // intersectObjects is a Raycaster method
 
         if (intersects.length > 0) {
             // Get the first intersected object (closest one)
             const clickedObject = intersects[0].object;
 
             // Apply a click effect (e.g., scale pulse, color flash)
-            // Store click time to help manage hover effects briefly after a click
             clickedObject.userData.lastClickTime = performance.now();
 
-            // Use TWEEN.js for smoother animation if available
-             if (typeof TWEEN !== 'undefined' && TWEEN.Tween) {
+            // Use TWEEN.js for smoother animation if imported successfully
+            // Use TWEEN directly as imported
+            if (typeof TWEEN !== 'undefined') { // Check TWEEN exists after import
                  // Animate scale up and back down
                 new TWEEN.Tween(clickedObject.scale)
                     .to({ x: 1.5, y: 1.5, z: 1.5 }, 150) // Scale up in 150ms
@@ -187,30 +195,32 @@
                     .start();
 
                 // Animate color flash
+                // Need to create a new THREE.Color for the target
                  new TWEEN.Tween(clickedObject.material.color)
-                    .to(new THREE.Color(0xffffff), 100) // Flash white
+                    .to(new THREE.Color(0xffffff), 100) // Flash white (THREE prefix needed here)
                      .easing(TWEEN.Easing.Quadratic.Out)
                      .onComplete(() => {
-                         // Wait briefly before restoring original color to let scale animation finish
+                         // Wait briefly before restoring original color
                          setTimeout(() => {
                              // Ensure object wasn't just hovered and changed color again
-                            if ((performance.now() - clickedObject.userData.lastClickTime) < 500) { // Check if recent click
+                             if ((performance.now() - clickedObject.userData.lastClickTime) < 500) {
+                                // Need to ensure the target is a THREE.Color if tweening to color object property
                                 new TWEEN.Tween(clickedObject.material.color)
-                                    .to(clickedObject.userData.originalColor, 400) // Fade back to original
+                                    .to(clickedObject.userData.originalColor, 400) // Fade back to original (using the stored clone)
                                     .easing(TWEEN.Easing.Quadratic.Out)
                                     .start();
                              }
-                         }, 50); // Wait 50ms
+                         }, 50);
                      })
                      .start();
 
             } else {
                 // Fallback if TWEEN.js isn't loaded (less smooth)
                  clickedObject.scale.set(1.5, 1.5, 1.5);
-                 setTimeout(() => clickedObject.scale.copy(clickedObject.userData.originalScale), 450); // Revert after delay
+                 setTimeout(() => clickedObject.scale.copy(clickedObject.userData.originalScale), 450);
 
-                 clickedObject.material.color.setHex(0xffffff);
-                  setTimeout(() => clickedObject.material.color.copy(clickedObject.userData.originalColor), 500); // Revert after delay
+                 clickedObject.material.color.setHex(0xffffff); // setHex is a THREE.Color method
+                  setTimeout(() => clickedObject.material.color.copy(clickedObject.userData.originalColor), 500);
             }
 
 
@@ -229,6 +239,7 @@
         objects.forEach((obj, index) => {
             // Basic constant rotation around object's stored axis
             const rotationAmount = obj.userData.speed;
+            // rotateOnAxis is a method of Object3D, called on the mesh instance
             obj.rotateOnAxis(obj.userData.rotationAxis, rotationAmount);
 
             // Add some subtle translation/wobble based on time
@@ -242,8 +253,9 @@
              if (distFromCenter > boundaryRadius) {
                 // Warp to opposite side and add some randomness
                  obj.position.multiplyScalar(-1);
+                 // THREE prefix needed for Vector3 and MathUtils
                  obj.position.add(new THREE.Vector3(
-                     THREE.MathUtils.randFloatSpread(5), // Smaller spread on warp
+                     THREE.MathUtils.randFloatSpread(5),
                      THREE.MathUtils.randFloatSpread(5),
                      THREE.MathUtils.randFloatSpread(5)
                  ));
@@ -253,6 +265,7 @@
 
         // Raycasting for hover effect
         raycaster.setFromCamera(mouse, camera);
+        // intersectObjects is a method of Raycaster, called on the raycaster instance
         const intersects = raycaster.intersectObjects(objects);
 
         if (intersects.length > 0) {
@@ -277,9 +290,9 @@
                     intersectedObject = firstIntersected;
 
                      // Apply hover effect (e.g., glow color, slight scale)
-                    intersectedObject.material.color.setHex(0xffff00); // Highlight color (yellow)
+                    intersectedObject.material.color.setHex(0xffff00); // setHex is a THREE.Color method
                     // Animate scale slightly up on hover using TWEEN if available
-                    if (typeof TWEEN !== 'undefined' && TWEEN.Tween) {
+                    if (typeof TWEEN !== 'undefined') {
                          new TWEEN.Tween(intersectedObject.scale)
                              .to(intersectedObject.userData.originalScale.clone().multiplyScalar(1.1), 100)
                              .easing(TWEEN.Easing.Quadratic.Out)
@@ -300,11 +313,12 @@
                 // We were just hovering over an object, but now we're not
                 // Restore its original scale and color if it wasn't just clicked
                 if (!intersectedObject.userData.lastClickTime || (performance.now() - intersectedObject.userData.lastClickTime) > 400) {
-                    if (typeof TWEEN !== 'undefined' && TWEEN.Tween) {
+                    if (typeof TWEEN !== 'undefined') {
                          new TWEEN.Tween(intersectedObject.scale)
                              .to(intersectedObject.userData.originalScale, 100)
                              .easing(TWEEN.Easing.Quadratic.Out)
                              .start();
+                          // Need to ensure the target color is a THREE.Color if using tween.to(color_object)
                          new TWEEN.Tween(intersectedObject.material.color)
                             .to(intersectedObject.userData.originalColor, 100)
                             .easing(TWEEN.Easing.Quadratic.Out)
@@ -323,17 +337,19 @@
         }
 
 
-        // Update TWEEN.js animations if loaded
+        // Update TWEEN.js animations if imported
+        // Use TWEEN directly as imported
         if (typeof TWEEN !== 'undefined' && TWEEN.update) {
             TWEEN.update();
         }
 
 
         // Update controls (needed if controls.enableDamping is true)
-        controls.update();
+        controls.update(); // Controls method
 
         // Render the scene
-        renderer.render(scene, camera);
+        renderer.render(scene, camera); // Renderer method
+
     }
 
 </script>
