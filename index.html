@@ -27,6 +27,7 @@
 <!-- Using cdnjs for ease of single-file example -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.154.0/three.min.js"></script>
 <!-- OrbitControls for easy camera movement - USING THE CLASSIC /js/ VERSION -->
+<!-- This script will likely add OrbitControls to the global THREE object -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.154.0/examples/js/controls/OrbitControls.js"></script>
 <!-- TWEEN.js for animations (optional, but used for click effect) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.min.js"></script>
@@ -60,8 +61,8 @@
         document.body.appendChild(renderer.domElement); // Add canvas to body
 
         // Controls setup (for orbiting/panning/zooming)
-        // The OrbitControls object is now available globally after loading the /js/ version
-        controls = new OrbitControls(camera, renderer.domElement);
+        // Accessing OrbitControls via the THREE object as it's defined by the /js/ script
+        controls = new THREE.OrbitControls(camera, renderer.domElement); // <--- CHANGED HERE
         controls.enableDamping = true; // Smooth camera movement
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = false; // Keep vertical panning locked to up/down world axis
